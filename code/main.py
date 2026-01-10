@@ -16,10 +16,38 @@ for _ in range(20):
 player = Player(player_surf, all_sprites)
 
 meteor_event = pygame.event.custom_type()
-pygame.time.set_timer(meteor_event, 500)
+pygame.time.set_timer(meteor_event, 300)
+font = pygame.font.Font(None, 40)
+score = 0
+
+
+def collision():
+    global running
+    global text_surf
+    global score
+    if pygame.sprite.spritecollide(
+        player, meteor_sprites, True, pygame.sprite.collide_mask
+    ):
+        running = False
+
+    for laser in laser_sprites:
+        meteors_hit = pygame.sprite.spritecollide(
+            laser, meteor_sprites, True, pygame.sprite.collide_mask
+        )
+        if meteors_hit:
+            laser.kill()
+            score += 10
+
+
+def score_update():
+    global text_surf
+    text_surf = font.render(str(score), True, (240, 0, 0))
+    text_rect = text_surf.get_frect(midbottom=(WINDOW_WIDTH / 2, WINDOW_HEIGHT - 30))
+    display_surface.blit(text_surf, text_rect)
 
 
 def game_loop():
+    global running
     running = True
 
     while running:
@@ -33,10 +61,10 @@ def game_loop():
                 Meteor(meteor_surf, (x, y), all_sprites, meteor_sprites)
 
         all_sprites.update(dt)
-
+        collision()
         display_surface.fill("#111111")
         all_sprites.draw(display_surface)
-
+        score_update()
         pygame.display.update()
 
     pygame.quit()
