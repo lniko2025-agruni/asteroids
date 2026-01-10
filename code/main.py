@@ -1,5 +1,6 @@
 import pygame
 from os.path import join
+from random import randint, uniform
 
 
 class Player(pygame.sprite.Sprite):
@@ -17,6 +18,11 @@ class Player(pygame.sprite.Sprite):
         self.direction = self.direction.normalize() if self.direction else self.direction
         self.rect.center += self.direction * self.speed * dt
 
+class Star(pygame.sprite.Sprite):
+    def __init__(self, surf, *groups):
+        super().__init__(*groups)
+        self.image = surf
+        self.rect = self.image.get_frect(center=(randint(0, WINDOW_WIDTH), randint(0, WINDOW_HEIGHT)))
 
 pygame.init()
 WINDOW_WIDTH, WINDOW_HEIGHT = 1080, 720
@@ -25,8 +31,11 @@ pygame.display.set_caption('Asteroids')
 clock = pygame.Clock()
 
 player_surf = pygame.image.load(join('../images', 'player.png')).convert_alpha()
+star_surf = pygame.image.load(join('../images', 'star.png')).convert_alpha()
 
 all_sprites = pygame.sprite.Group()
+for _ in range(20):
+    Star(star_surf, all_sprites)
 player = Player(player_surf, all_sprites)
 
 def game_loop():
