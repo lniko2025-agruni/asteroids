@@ -24,6 +24,30 @@ class Star(pygame.sprite.Sprite):
         self.image = surf
         self.rect = self.image.get_frect(center=(randint(0, WINDOW_WIDTH), randint(0, WINDOW_HEIGHT)))
 
+
+class Meteor(pygame.sprite.Sprite):
+    def __init__(self, surf, pos, *groups):
+        super().__init__(*groups)
+        self.original_surf = surf
+        self.image = self.original_surf
+        self.rect = self.image.get_frect(center=pos)
+
+        self.start_time = pygame.time.get_ticks()
+        self.lifetime = 3000
+        self.direction = pygame.Vector2(uniform(-0.5, 0.5), 1)
+        self.speed = randint(400, 500)
+        self.rotation_speed = randint(45, 90)
+        self.rotation = 0
+
+    def update(self, dt):
+        self.rect.center += self.direction * self.speed * dt
+        if pygame.time.get_ticks() - self.start_time >= self.lifetime:
+            self.kill()
+
+        self.rotation += self.rotation_speed * dt
+        self.image = pygame.transform.rotate(self.original_surf, self.rotation)
+        self.rect = self.image.get_frect(center=self.rect.center)
+
 pygame.init()
 WINDOW_WIDTH, WINDOW_HEIGHT = 1080, 720
 display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -32,11 +56,17 @@ clock = pygame.Clock()
 
 player_surf = pygame.image.load(join('../images', 'player.png')).convert_alpha()
 star_surf = pygame.image.load(join('../images', 'star.png')).convert_alpha()
+meteor_surf = pygame.image.load(join('../images', 'meteor.png')).convert_alpha()
 
 all_sprites = pygame.sprite.Group()
+meteor_sprites = pygame.sprite.Group()
+
 for _ in range(20):
     Star(star_surf, all_sprites)
 player = Player(player_surf, all_sprites)
+
+meteor_event = pygame.event.custom_type()
+pygame.time.set_timer(meteor_event, 500)
 
 def game_loop():
     running = True
@@ -47,6 +77,9 @@ def game_loop():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == meteor_event:
+                x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
+                Meteor(meteor_surf, (x, y), all_sprites, meteor_sprites)
 
         all_sprites.update(dt)
 
