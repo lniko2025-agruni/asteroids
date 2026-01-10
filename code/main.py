@@ -21,6 +21,14 @@ font = pygame.font.Font(None, 40)
 score = 0
 
 
+game_music = pygame.mixer.Sound(join("audio", "loop.mp3"))
+game_music.set_volume(0.4)
+game_music.play(loops=-1)
+
+explosion_sound = pygame.mixer.Sound(join("audio", "explosion.mp3"))
+explosion_sound.set_volume(0.5)
+
+
 def collision():
     global running
     global text_surf
@@ -37,6 +45,7 @@ def collision():
         if meteors_hit:
             laser.kill()
             score += 10
+            explosion_sound.play()
 
 
 def score_update():
