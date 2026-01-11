@@ -36,6 +36,10 @@ class Player(pygame.sprite.Sprite):
         )
         self.rect.center += self.direction * self.speed * dt
 
+
+        self.rect.centerx = max(0, min(WINDOW_WIDTH, self.rect.centerx))
+        self.rect.centery = max(0, min(WINDOW_HEIGHT, self.rect.centery))
+
         recent_keys = pygame.key.get_just_pressed()
 
         if recent_keys[pygame.K_SPACE] and self.can_shoot:
