@@ -17,15 +17,35 @@ clock = pygame.Clock()
 for _ in range(20):
     Star(star_surf, all_sprites)
 player = Player(player_surf, all_sprites)
+
 heart_width, heart_spacing = 50, 20
+player_lives = 3
+max_lives = 5  # max lives player can have
 hearts = []
-for i in range(3):
-    hearts.append(
-        Heart(heart_surf,
-              ((WINDOW_WIDTH - (3 * heart_width)) / 2 + i * heart_width + heart_spacing, heart_spacing),
-              all_sprites
-        )
-    )
+
+
+def update_hearts():
+    global player_lives
+    global hearts
+    global max_lives
+
+    for heart in hearts:
+        heart.kill()
+    hearts.clear()
+
+    # draw hearts centered at top
+    for i in range(player_lives):
+        x = (
+            WINDOW_WIDTH
+            - (player_lives * heart_width + (player_lives - 1) * heart_spacing)
+        ) / 2
+        x += i * (heart_width + heart_spacing)
+        y = heart_spacing
+        hearts.append(Heart(heart_surf, (x, y), False, all_sprites))
+
+
+update_hearts()
+
 
 meteor_event = pygame.event.custom_type()
 pygame.time.set_timer(meteor_event, 300)
@@ -35,8 +55,12 @@ power_up_event = pygame.event.custom_type()
 pygame.time.set_timer(power_up_event, 10000)
 
 
+heart_event = pygame.event.custom_type()
+pygame.time.set_timer(heart_event, 8000)
+
 font = pygame.font.Font(None, 40)
 score = 0
+
 
 game_music = pygame.mixer.Sound(join("audio", "loop.mp3"))
 game_music.set_volume(0.4)
@@ -52,17 +76,19 @@ player_damage.set_volume(0.5)
 def collision():
     global running
     global score
+    global player_lives
 
     if pygame.sprite.spritecollide(
         player, meteor_sprites, True, pygame.sprite.collide_mask
     ):
-        if hearts: 
-            hearts.pop().kill()
+        if player_lives > 0:
+            player_lives -= 1
             player_damage.play()
-        
-        if not hearts:
+            update_hearts()  # refresh displayed hearts
+
+        if player_lives <= 0:
             running = False
-        
+
     for laser in laser_sprites:
         meteors_hit = pygame.sprite.spritecollide(
             laser, meteor_sprites, True, pygame.sprite.collide_mask
@@ -72,13 +98,28 @@ def collision():
             score += 10
             explosion_sound.play()
 
-    powerups_hit = pygame.sprite.spritecollide(player, power_up_sprites, True, pygame.sprite.collide_mask)
+    powerups_hit = pygame.sprite.spritecollide(
+        player, power_up_sprites, True, pygame.sprite.collide_mask
+    )
 
-    if powerups_hit:
+    for powerup in powerups_hit:
+        # apply power-up effect
         player.powered_up = True
         player.cooldown_duration = 150
         player.speed = player.base_speed * 1.5
         player.powerup_end_time = pygame.time.get_ticks() + 4500
+        # play sound
+        powerup.power_up_sound.play()
+
+    heart_hit = pygame.sprite.spritecollide(
+        player, heart_sprites, True, pygame.sprite.collide_mask
+    )
+    for heart in heart_hit:
+        if heart.power_up:  # only falling hearts
+            if player_lives < max_lives:
+                player_lives += 1
+                update_hearts()
+            heart.heart_sound.play()
 
 
 def score_update():
@@ -104,6 +145,9 @@ def game_loop():
             if event.type == power_up_event:
                 x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
                 PowerUp(power_up_surf, (x, y), all_sprites, power_up_sprites)
+            if event.type == heart_event:
+                x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
+                Heart(heart_surf, (x, y), True, all_sprites, heart_sprites)
 
         all_sprites.update(dt)
         collision()
@@ -116,7 +160,7 @@ def game_loop():
                 (255, 200, 0),
                 player.rect.center,
                 int(player.rect.width // 2 + pulse),
-                2
+                2,
             )
         score_update()
         pygame.display.update()

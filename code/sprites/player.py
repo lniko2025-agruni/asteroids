@@ -3,6 +3,7 @@ from sprites.laser import Laser
 from config import *
 from math import sin, cos, radians
 
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, surf, *groups):
         super().__init__(*groups)
@@ -70,4 +71,3 @@ class Player(pygame.sprite.Sprite):
                     all_sprites,
                     laser_sprites,
                 )
-

@@ -1,4 +1,6 @@
 import pygame
+from os.path import join
+
 
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, surf, pos, *groups):
@@ -8,6 +10,8 @@ class PowerUp(pygame.sprite.Sprite):
 
         self.speed = 200  # falling speed
         self.mask = pygame.mask.from_surface(self.image)
+        self.power_up_sound = pygame.mixer.Sound(join("audio", "power_up.mp3"))
+        self.power_up_sound.set_volume(0.5)
 
     def update(self, dt):
         self.rect.y += self.speed * dt
