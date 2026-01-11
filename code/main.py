@@ -4,7 +4,9 @@ from sprites.meteor import Meteor
 from sprites.star import Star
 from sprites.player import Player
 from sprites.heart import Heart
+from sprites.powerUp import PowerUp
 from config import *
+from math import sin
 
 
 pygame.init()
@@ -28,6 +30,11 @@ for i in range(3):
 meteor_event = pygame.event.custom_type()
 pygame.time.set_timer(meteor_event, 300)
 
+
+power_up_event = pygame.event.custom_type()
+pygame.time.set_timer(power_up_event, 10000)
+
+
 font = pygame.font.Font(None, 40)
 score = 0
 
@@ -44,7 +51,6 @@ player_damage.set_volume(0.5)
 
 def collision():
     global running
-    global text_surf
     global score
 
     if pygame.sprite.spritecollide(
@@ -66,6 +72,15 @@ def collision():
             score += 10
             explosion_sound.play()
 
+    powerups_hit = pygame.sprite.spritecollide(player, power_up_sprites, True, pygame.sprite.collide_mask)
+
+    if powerups_hit:
+        player.powered_up = True
+        player.cooldown_duration = 150
+        player.speed = player.base_speed * 1.5
+        player.powerup_end_time = pygame.time.get_ticks() + 4500
+
+
 def score_update():
     global text_surf
     text_surf = font.render(str(score), True, (240, 0, 0))
@@ -86,11 +101,23 @@ def game_loop():
             if event.type == meteor_event:
                 x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
                 Meteor(meteor_surf, (x, y), all_sprites, meteor_sprites)
+            if event.type == power_up_event:
+                x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
+                PowerUp(power_up_surf, (x, y), all_sprites, power_up_sprites)
 
         all_sprites.update(dt)
         collision()
         display_surface.fill("#111111")
         all_sprites.draw(display_surface)
+        if player.powered_up:
+            pulse = 6 + 12 * abs(sin(pygame.time.get_ticks() * 0.003))
+            pygame.draw.circle(
+                display_surface,
+                (255, 200, 0),
+                player.rect.center,
+                int(player.rect.width // 2 + pulse),
+                2
+            )
         score_update()
         pygame.display.update()
 

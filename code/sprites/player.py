@@ -1,7 +1,7 @@
 import pygame
 from sprites.laser import Laser
 from config import *
-
+from math import sin, cos, radians
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, surf, *groups):
@@ -9,12 +9,16 @@ class Player(pygame.sprite.Sprite):
         self.image = surf
         self.rect = self.image.get_frect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
         self.direction = pygame.Vector2()
-        self.speed = 400
+        self.base_speed = 420
+        self.speed = self.base_speed
 
         # cooldown
         self.can_shoot = True
         self.laser_shoot_time = 0
-        self.cooldown_duration = 500
+        self.base_cooldown_duration = 500
+        self.cooldown_duration = self.base_cooldown_duration
+        self.powered_up = False
+        self.powerup_end_time = 0
 
     def laser_timer(self):
         if not self.can_shoot:
@@ -32,10 +36,38 @@ class Player(pygame.sprite.Sprite):
         self.rect.center += self.direction * self.speed * dt
 
         recent_keys = pygame.key.get_just_pressed()
+
         if recent_keys[pygame.K_SPACE] and self.can_shoot:
-            laser = Laser(laser_surf, self.rect.midtop, all_sprites, laser_sprites)
+            self.shoot()
             self.can_shoot = False
             self.laser_shoot_time = pygame.time.get_ticks()
-            laser.laser_sound.play()
 
+        current_time = pygame.time.get_ticks()
+        if self.powered_up and current_time > self.powerup_end_time:
+            self.powered_up = False
+            self.cooldown_duration = self.base_cooldown_duration
+            self.speed = self.base_speed
         self.laser_timer()
+
+    def shoot(self):
+        # center laser
+        Laser(
+            laser_surf,
+            self.rect.midtop,
+            pygame.Vector2(0, -1),
+            all_sprites,
+            laser_sprites,
+        ).laser_sound.play()
+
+        if self.powered_up:
+            for angle in (-30, 30):
+                rad = radians(angle)
+                direction = pygame.Vector2(sin(rad), -cos(rad))
+                Laser(
+                    laser_surf,
+                    self.rect.midtop,
+                    direction,
+                    all_sprites,
+                    laser_sprites,
+                )
+
