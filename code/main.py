@@ -5,6 +5,7 @@ from sprites.star import Star
 from sprites.player import Player
 from sprites.heart import Heart
 from sprites.powerUp import PowerUp
+from sprites.enemy_ship import EnemyShip
 from config import *
 from math import sin
 
@@ -20,16 +21,19 @@ player = None
 meteor_event = pygame.event.custom_type()
 power_up_event = pygame.event.custom_type()
 heart_event = pygame.event.custom_type()
+enemy_event = pygame.event.custom_type()
 
 def enable_game_timers():
     pygame.time.set_timer(meteor_event, 300)
     pygame.time.set_timer(power_up_event, 10000)
     pygame.time.set_timer(heart_event, 8000)
+    pygame.time.set_timer(enemy_event, 12000)
 
 def disable_game_timers():
     pygame.time.set_timer(meteor_event, 0)
     pygame.time.set_timer(power_up_event, 0)
     pygame.time.set_timer(heart_event, 0)
+    pygame.time.set_timer(enemy_event, 0)
 
 heart_width, heart_spacing = 50, 20
 player_lives = 3
@@ -37,6 +41,7 @@ max_lives = 5
 hearts = []
 
 font = pygame.font.Font(None, 40)
+mid_font = pygame.font.Font(None, 55)
 big_font = pygame.font.Font(None, 84)
 score = 0
 
@@ -118,7 +123,6 @@ def collision():
         player.cooldown_duration = 150
         player.speed = player.base_speed * 1.5
         player.powerup_end_time = pygame.time.get_ticks() + 4500
-        # play sound
         powerup.power_up_sound.play()
 
     heart_hit = pygame.sprite.spritecollide(
@@ -131,6 +135,24 @@ def collision():
                 update_hearts()
             heart.heart_sound.play()
     
+    if pygame.sprite.spritecollide(player, enemy_laser_sprites, True, pygame.sprite.collide_mask):
+        if player_lives > 0:
+            player_lives -= 1
+            player_damage.play()
+            update_hearts()
+
+        if player_lives <= 0:
+            return True
+        
+    for enemy in list(enemy_sprites):
+        hits = pygame.sprite.spritecollide(enemy, laser_sprites, True, pygame.sprite.collide_mask)
+        if hits:
+            dead = enemy.damage(len(hits))
+            if dead:
+                enemy.kill()
+                score += 50
+                explosion_sound.play()
+
     return False
 
 
@@ -148,6 +170,8 @@ def reset_game():
     laser_sprites.empty()
     power_up_sprites.empty()
     heart_sprites.empty()
+    enemy_sprites.empty()
+    enemy_laser_sprites.empty()
 
     for _ in range(20):
         Star(star_surf, all_sprites)
@@ -157,7 +181,7 @@ def reset_game():
     update_hearts()
 
     enable_game_timers()
-    pygame.event.clear([meteor_event, power_up_event, heart_event])
+    pygame.event.clear([meteor_event, power_up_event, heart_event, enemy_event])
 
 
 def start_screen():
@@ -177,9 +201,29 @@ def start_screen():
                     return False
 
         display_surface.fill("#111111")
-        draw_centered("ASTEROIDS", 140, big_font, (240, 0, 0))
-        draw_centered("Press SPACE to Start", 270, font)
-        draw_centered("ESC to Quit", 320, font)
+
+        title_y = 80
+        block_gap = 55    
+        line_gap = 45     
+
+        y = title_y
+        draw_centered("ASTEROIDS", y, big_font, (240, 0, 0))
+
+        y += 120
+        draw_centered("Press SPACE to Start", y, font)
+        y += line_gap
+        draw_centered("ESC to Quit", y, font)
+
+        y += block_gap + 10
+        draw_centered("Controls", y, mid_font)
+        y += line_gap
+        draw_centered("Arrow keys to move, SPACE to shoot", y, font)
+
+        y += block_gap + 10
+        draw_centered("Enemy HP", y, mid_font)
+        y += line_gap
+        draw_centered("Asteroids - 1, Enemy ship - 3", y, font)
+
         pygame.display.update()
 
 
@@ -200,10 +244,21 @@ def game_over_screen(final_score):
                     return False
 
         display_surface.fill("#111111")
-        draw_centered("GAME OVER", 140, big_font, (240, 0, 0))
-        draw_centered(f"Score: {final_score}", 270, font)
-        draw_centered("Press R to Restart", 330, font)
-        draw_centered("ESC / Q to Quit", 380, font)
+        
+        title_y = 80
+        block_gap = 55
+        line_gap = 45
+
+        y = title_y
+        draw_centered("GAME OVER", y, big_font, (240, 0, 0))
+
+        y += 120
+        draw_centered(f"Score: {final_score}", y, font)
+
+        y += block_gap + 25
+        draw_centered("Press R to Restart", y, font)
+        y += line_gap
+        draw_centered("ESC / Q to Quit", y, font)
         pygame.display.update()
 
 
@@ -223,6 +278,10 @@ def play_round():
             if event.type == heart_event:
                 x, y = randint(0, WINDOW_WIDTH), randint(-200, -100)
                 Heart(heart_surf, (x, y), True, all_sprites, heart_sprites)
+            if event.type == enemy_event and len(enemy_sprites) == 0:
+                y = randint(40, 140)
+                x = -80
+                EnemyShip(enemy_ship_surf, (x, y), player, all_sprites, enemy_sprites)
 
         all_sprites.update(dt)
 
